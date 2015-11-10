@@ -1,7 +1,7 @@
 __author__ = 'Yafit'
 import urllib2
 
-f = '10minWeatherData.xmll'
+f = '10minWeatherData.xml'
 gh_url='https://data.gov.il//sites/data.gov.il/files/xml/imslasthour.xml'
 req = urllib2.Request(gh_url)
 cookies_manager = urllib2.HTTPCookieProcessor()
