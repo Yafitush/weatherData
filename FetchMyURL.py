@@ -11,8 +11,20 @@ import csv
 import datetime
 from urlparse import urlparse
 from bs4 import BeautifulSoup
+import inspect
+
+def PrintFrame():
+  callerframerecord = inspect.stack()[1]    # 0 represents this line
+                                            # 1 represents line at caller
+  frame = callerframerecord[0]
+  info = inspect.getframeinfo(frame)
+  print info.filename                       # __FILE__     -> Test.py
+  print info.function                       # __FUNCTION__ -> Main
+  print info.lineno                         # __LINE__     -> 13
+
 
 def getkey(v_user,v_password,v_tz):
+    PrintFrame()
     url_to_app = 'https://srvt1.i-ecnet.co.il/magic94Scripts/mgrqispi94.dll#'
 
     data = {'APPNAME' : 'traklin',
@@ -40,7 +52,7 @@ def getkey(v_user,v_password,v_tz):
             print 'The server couldn\'t fulfill the request.'
             print 'Error code: ', e.code
     else:
-        print "fine1"
+        # print "fine1"
         # everything is fine
         soup = BeautifulSoup(response.read(), 'html.parser')
         result = soup.find_all('a')[-1]
@@ -60,6 +72,7 @@ user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
 
 
 def getsites(key):
+    PrintFrame()
     url_to_app = 'https://srvt1.i-ecnet.co.il/magic94Scripts/mgrqispi94.dll'
 
     data = {'APPNAME' : 'traklin',
@@ -94,10 +107,12 @@ def getsites(key):
         return sites_tuple
 
 def getmonim(sitekey,key):
+    PrintFrame()
     url_to_app = 'https://srvt1.i-ecnet.co.il/magic94Scripts/mgrqispi94.dll'
-
+    print "getting mone for site" + sitekey
     data = {'APPNAME' : 'traklin',
-            'PRGNAME' : 'MoneRepByDate',
+            #'PRGNAME' : 'MoneRepByDate',
+            'PRGNAME' :'Techni_Hoze',
             'ARGUMENTS' : key.split('=')[1]+',atar',
             'year2Value' : 'true',
             'type' : 'hoze' ,
@@ -122,12 +137,15 @@ def getmonim(sitekey,key):
         soup = BeautifulSoup(response.read(), 'html.parser')
         for mone in soup.find_all('option'):
             mone_list.append(mone['value'])
+    #print (mone_list)
     return mone_list
 
 def index_cleaner(rawfile):
+    PrintFrame()
+    print "inside index_clean"
     print "index cleaner"
-    with open('/opt/skyspark-2.1.12/db/newnewnew/io/'+rawfile, 'r') as inFile:
-        outfile = open('/opt/skyspark-2.1.12/db/newnewnew/io/index.csv','w+')
+    with open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+rawfile, 'r') as inFile:
+        outfile = open('/opt/skyspark-2.1.12/db/newnewnew/traklin/index.csv','w+')
         reader = csv.reader(inFile, delimiter=',', quotechar="\"")
         for row in reader:
             if ( int(row[0]) > 3  ):
@@ -139,9 +157,10 @@ def index_cleaner(rawfile):
     return 0
 
 def get_lists(key):
-    if os.path.isfile('/opt/skyspark-2.1.12/db/newnewnew/io/index_raw.csv'):
+    PrintFrame()
+    if os.path.isfile('/opt/skyspark-2.1.12/db/newnewnew/traklin/index_raw.csv'):
         print "get_list- if"
-        with open('/opt/skyspark-2.1.12/db/newnewnew/io/index_raw.csv', 'r') as inFile:
+        with open('/opt/skyspark-2.1.12/db/newnewnew/traklin/index_raw.csv', 'r') as inFile:
             csv.reader(inFile, delimiter=',', quotechar='"')
             sitekeys = []
             sitevalues = []
@@ -153,26 +172,32 @@ def get_lists(key):
                 mone_list.append(row[0])
     else:#
         print "get_list- else"
-        outFile = open('/opt/skyspark-2.1.12/db/newnewnew/io/index_raw.csv', 'w+')
+        outFile = open('/opt/skyspark-2.1.12/db/newnewnew/traklin/index_raw.csv', 'w+')
         outwriter = csv.writer(outFile)
         sites = getsites(key)
+        print "len of sites: "+str(len(sites))
         print "returned from getsites"
         for sitekeys,sitevalues in sites.items():
+            print "sitekeys" +str(sitekeys)
+           # print "sitevalues" +str(sitevalues)
             mone_list = getmonim(sitekeys,key)
-            #print(sitekeys)
-            #print(sitevalues)
+            print(sitekeys)
+            print(sitevalues)
             if mone_list.__len__() >0:
+                print "mone_list len >0"
                 for mone in mone_list:
-                    #print(mone)
+                    print(mone)
                     outwriter.writerow([mone.encode("UTF-8") , '\"' +sitevalues.encode("UTF-8").replace('"','') + '\"'  , sitekeys.encode("UTF-8") ])
             else :
+                print "mone_list len <=0"
                 outwriter.writerow([ '-1' , '\"' +sitevalues.encode("UTF-8").replace('"','') + '\"'  , sitekeys.encode("UTF-8")])
         outFile.close()
-        print "get lise end else"
+        print "get list end else"
     index_cleaner('index_raw.csv')
     return 0
 
 def getEnergyMeter(key,sitekey,meterkey,startdate,stopdate):
+    PrintFrame()
     url_to_app = 'https://srvt1.i-ecnet.co.il/magic94Scripts/mgrqispi94.dll'
     key = str(key).split('=')[1]
     key = key.split('-N')
@@ -195,7 +220,7 @@ def getEnergyMeter(key,sitekey,meterkey,startdate,stopdate):
             print 'Error code: ', e.code
     else:
         #add check for empty tables!!!
-        out =open('/opt/skyspark-2.1.12/db/newnewnew/io/'+meterkey+'.csv','ab+')
+        out =open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+meterkey+'.csv','ab+')
         writer = csv.writer(out)
         soup = BeautifulSoup(response.read())
         table2 = soup.find_all('table')
@@ -213,8 +238,9 @@ def getEnergyMeter(key,sitekey,meterkey,startdate,stopdate):
     return 0
 
 def writeMeterCsv(key):
+    PrintFrame()
     print "write meter csv"
-    with open('/opt/skyspark-2.1.12/db/newnewnew/io/index.csv','r') as inFile:
+    with open('/opt/skyspark-2.1.12/db/newnewnew/traklin/index.csv','r') as inFile:
         reader = csv.reader(inFile, delimiter=',', quotechar='"')
         for row in reader:
             if os.path.isfile(row[0].strip()+'.csv'):
@@ -225,16 +251,18 @@ def writeMeterCsv(key):
     return 0
 
 def perdelta(start, end, delta):
+    PrintFrame()
     curr = start
     while curr < end:
-        yield curr, min(curr + delta, end)
         curr += delta
         curr += timedelta(days=1)
 
 def timeFormat(dateStamp):
+    PrintFrame()
     return datetime.datetime.strptime(str(dateStamp), '%Y-%m-%d').strftime('%d/%m/%y')
 
 def iterativeGetEnergyMeter(key,sitekey,meterkey):
+    PrintFrame()
     for s,e in perdelta(date(2014,7,1), date(2014,7,31), timedelta(days=120)):
         getEnergyMeter(key,sitekey,meterkey,timeFormat(s),timeFormat(e))
 
