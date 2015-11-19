@@ -1,6 +1,4 @@
 # coding=utf-8
-from _ctypes import sizeof
-from genericpath import getsize
 
 __author__ = 'Yafit'
 import urllib2
@@ -14,11 +12,16 @@ from bs4 import BeautifulSoup
 import inspect
 from datetime import date, timedelta
 import sys
+import ssl
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
 def readCSVfile():
+    """
+
+    :return:
+    """
     with open('/opt/skyspark-2.1.12/db/newnewnew/traklin/credentials.csv', 'rt') as f:
     #with open('credentials.csv', 'rt') as f:
         reader = csv.DictReader(f)
@@ -278,7 +281,7 @@ def gettingDates(mone):
     global startDate
     global endDate
     if (numline==0):
-        startDate = date(2015,8,1)
+        startDate = date(2012,1,1)
     else:
         tempDate =  linecache.getline('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/LastReadFiles/'+
                         'lastRead'+mone+'.csv',numline).split(",")[1]
@@ -299,7 +302,7 @@ readCSVfile()
 
 startDate = None
 endDate = None
-
+ssl.PROTOCOL_SSLv23 = ssl.PROTOCOL_TLSv1
 i = 0
 while (i < len(traklin_sites_credentials)): #for all customers
     dict = traklin_sites_credentials[i]
@@ -311,20 +314,18 @@ while (i < len(traklin_sites_credentials)): #for all customers
         site_tz = '0'+site_tz  #adding leading '0'
     site_details = { }
     site_details['client_name'] = client_name
-    #if not os.path.exists('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name):
-     #   os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name)
-      #  os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name+'/moneFiles')
-       # os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name+'/LastReadFiles')
+    if not os.path.exists('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name):
+        os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name)
+        os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name+'/moneFiles')
+        os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name+'/LastReadFiles')
 
     print "start date: " + str(startDate)
     print "end date: " + str(endDate)
 
     key = getkey(site_username,site_password,site_tz)
     print key
-    #get_lists(key)
-
-
-    #writeMeterCsv(key)
+    get_lists(key)
+    writeMeterCsv(key)
 
     i += 1
 

@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 import inspect
 from datetime import date, timedelta
 import sys
+import ssl
 
 def PrintFrame():
   callerframerecord = inspect.stack()[1]    # 0 represents this line           # 1 represents line at caller
@@ -250,6 +251,8 @@ def gettingDates(siteNumber):
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
+
+#ssl.PROTOCOL_SSLv23 = ssl.PROTOCOL_TLSv1
 traklin_sites_credentials=[] #contains the sites name, username, password and tz
 user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
 readCSVfile()
