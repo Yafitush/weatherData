@@ -13,6 +13,9 @@ import inspect
 from datetime import date, timedelta
 import sys
 import ssl
+import MySQLdb
+import pytz
+import lxml
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -22,7 +25,7 @@ def readCSVfile():
 
     :return:
     """
-    with open('/opt/skyspark-2.1.12/db/newnewnew/traklin/credentials.csv', 'rt') as f:
+    with open(path+'credentials.csv', 'rt') as f:
     #with open('credentials.csv', 'rt') as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -75,9 +78,9 @@ def getkey(v_user,v_password,v_tz):
 
 def get_lists(key):
     PrintFrame()
-    if os.path.isfile('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/index_raw.csv'):
+    if os.path.isfile(path+site_details['client_name']+'/index_raw.csv'):
         print "get_list- if"
-        with open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/index_raw.csv', 'r') as inFile:
+        with open(path+site_details['client_name']+'/index_raw.csv', 'r') as inFile:
             csv.reader(inFile, delimiter=',', quotechar='"')
             sitekeys = []
             sitevalues = []
@@ -89,7 +92,7 @@ def get_lists(key):
                 mone_list.append(row[0])
     else:
         print "get_list- else"
-        outFile = open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/index_raw.csv', 'w+')
+        outFile = open(path+site_details['client_name']+'/index_raw.csv', 'w+')
         outwriter = csv.writer(outFile)
         sites = getsites(key)
         print "returned from getsites"
@@ -181,7 +184,7 @@ def getmonim(sitekey,key):
 def index_cleaner(rawfile):
     PrintFrame()
     print "index cleaner"
-    with open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/'+rawfile, 'r') as inFile:
+    with open(path+site_details['client_name']+'/'+rawfile, 'r') as inFile:
         print "opened index_raw!!!"
         outfile = open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/index.csv','w+')
         reader = csv.reader(inFile, delimiter=',', quotechar="\"")
@@ -193,7 +196,7 @@ def index_cleaner(rawfile):
 
 def writeMeterCsv(key):
     PrintFrame()
-    with open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/index.csv','r') as inFile:
+    with open(path+site_details['client_name']+'/index.csv','r') as inFile:
         reader = csv.reader(inFile, delimiter=',', quotechar='"')
         for row in reader:
             if os.path.isfile(row[0].strip()+'.csv'):
@@ -202,7 +205,8 @@ def writeMeterCsv(key):
                 print(row[0])
                 gettingDates(row[0])
                 iterativeGetEnergyMeter(key,row[-1].strip(),row[0].strip())
-                saveDatesFile = open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name+'/LastReadFiles/lastRead'+row[0]+'.csv',"ab+")
+
+                saveDatesFile = open(path+client_name+'/LastReadFiles/lastRead'+row[0]+'.csv',"ab+")
                 writer = csv.writer(saveDatesFile)
                 writer.writerow([ str(startDate).encode('utf-8'), str(endDate).encode('utf-8'), str(row[0]).encode('utf-8'),
                     str(row[1]).encode('utf-8'), str(row[2]).encode('utf-8')])
@@ -212,7 +216,11 @@ def writeMeterCsv(key):
 def iterativeGetEnergyMeter(key,sitekey,meterkey):
     PrintFrame()
     for s,e in perdelta(startDate, endDate, timedelta(days=120)):
-      getEnergyMeter(key,sitekey,meterkey,timeFormat(s),timeFormat(e))
+        print "s:"+str(s)
+        print "e:"+str(e)
+        getEnergyMeter(key,sitekey,meterkey,timeFormat(s),timeFormat(e))
+
+
 
 def perdelta(start, end, delta):
     PrintFrame()
@@ -246,25 +254,23 @@ def getEnergyMeter(key,sitekey,meterkey,startdate,stopdate):
             print 'The server couldn\'t fulfill the request.'
             print 'Error code: ', e.code
     else:
+        page = response.read()
         #add check for empty tables!!!
-        out =open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/moneFiles/'+meterkey+'.csv','ab+')
+        hh =open(path+site_details['client_name']+'/'+meterkey+'.html','wb+')
+        hh.write(page)
+
+        out =open(path+site_details['client_name']+'/moneFiles/'+meterkey+'.csv','ab+')
+
         writer = csv.writer(out)
-        soup = BeautifulSoup(response.read(),'html.parser' )
+        soup = BeautifulSoup(page,'lxml')
         table2 = soup.find_all('table')
         if table2.__len__() > 0 :
-            print "table2.__len__() > 0"
             table2 = table2[1]
-            print table2
             for tr in table2.find_all('tr'):
                 tds = tr.find_all('td')
                 row = [elem.text.encode('utf-8').strip() for elem in tds]
-                print row
                 if row.__len__() > 1 :
                     writer.writerow(row)
-                    print "writer.write to file"
-                    ##DEGUG##
-            # out =open('temp.html','wb+')
-            # out.write(response.read())
         response.close()
     return 0
 
@@ -275,7 +281,7 @@ def timeFormat(dateStamp):
 
 
 def gettingDates(mone):
-    lastReadFile = open('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/LastReadFiles/'+
+    lastReadFile = open(path+site_details['client_name']+'/LastReadFiles/'+
                         'lastRead'+mone+'.csv',"ab+")
     numline = len(lastReadFile.readlines())
     global startDate
@@ -283,7 +289,7 @@ def gettingDates(mone):
     if (numline==0):
         startDate = date(2012,1,1)
     else:
-        tempDate =  linecache.getline('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+site_details['client_name']+'/LastReadFiles/'+
+        tempDate =  linecache.getline(path+site_details['client_name']+'/LastReadFiles/'+
                         'lastRead'+mone+'.csv',numline).split(",")[1]
         tempYear = int(tempDate.split("-")[0])
         tempMonth = int(tempDate.split("-")[1])
@@ -292,12 +298,29 @@ def gettingDates(mone):
         linecache.clearcache()
     year = startDate.year
     month = startDate.month
-    numOfDaysInMonth = timedelta(days=(calendar.monthrange(year,month)[1]) -1)
-    endDate = startDate+numOfDaysInMonth
+    newMonth = month+2
+    if newMonth>12:
+        newMonth =  month%12
+        year+=1
+    endDate= date(2015, 11, 22)
+    #numOfDaysInMonth = timedelta(days=(calendar.monthrange(year,month)[1]) -1)
+    #endDate = startDate+numOfDaysInMonth
 
 
+
+
+
+#path='/opt/skyspark-2.1.12/db/newnewnew/traklin/'
+path = 'C:/Users/Yafit/PycharmProjects/untitled/'
 traklin_sites_credentials=[] #contains the sites name, username, password and tz
 user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
+
+###############3333
+utc= pytz.utc
+tz = pytz.timezone('Asia/Jerusalem')
+
+##################
+
 readCSVfile()
 
 startDate = None
@@ -314,10 +337,10 @@ while (i < len(traklin_sites_credentials)): #for all customers
         site_tz = '0'+site_tz  #adding leading '0'
     site_details = { }
     site_details['client_name'] = client_name
-    if not os.path.exists('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name):
-        os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name)
-        os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name+'/moneFiles')
-        os.makedirs('/opt/skyspark-2.1.12/db/newnewnew/traklin/'+client_name+'/LastReadFiles')
+    if not os.path.exists(path+client_name):
+        os.makedirs(path+client_name)
+        os.makedirs(path+client_name+'/moneFiles')
+        os.makedirs(path+client_name+'/LastReadFiles')
 
     print "start date: " + str(startDate)
     print "end date: " + str(endDate)
@@ -326,6 +349,22 @@ while (i < len(traklin_sites_credentials)): #for all customers
     print key
     get_lists(key)
     writeMeterCsv(key)
+'''
+    csvDir= csvDir=path+client_name+'/moneFiles'
+    db = dataBaseConnect()
+    cur = db.cursor()
 
-    i += 1
+    csvFileNames = indexParser(csvDir)
+    readFiles = 0
+    for csvFileName in csvFileNames:
+    csvDataParser(csvDir, csvFileName)
+    sqlStatement = 'LOAD DATA INFILE \''+mysqlDir+'changed_csv/' + csvFileName + "_edited.csv\' INTO TABLE pointValues FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n'"
+    print sqlStatement
+    cur.execute(sqlStatement)
+    db.commit()
+'''
+
+
+
+   # i += 1
 
