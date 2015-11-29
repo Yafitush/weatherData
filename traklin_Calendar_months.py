@@ -464,10 +464,10 @@ def csvDataParser(csvDir, csvFileName, client_name):
 
 
 def dataBaseConnect(client_name):
-    database = MySQLdb.connect(host="XXX", user="XXX", passwd="XXX")
+    database = MySQLdb.connect(host="localhost", user="root", passwd="XXX")
     sanitizedClient = str(client_name).replace('\'', '')  # use better way to sanitize input!!!!
     database.cursor().execute("""create database if not exists %s""" % sanitizedClient)
-    return MySQLdb.connect(host="XXX", user="XXX", passwd="XXX", db=sanitizedClient)
+    return MySQLdb.connect(host="localhost", user="root", passwd="XXX", db=sanitizedClient)
 
 
 def indexParser(csvDir):
